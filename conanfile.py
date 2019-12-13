@@ -8,7 +8,7 @@ dri_list = ['i915', 'i965', 'r100', 'r200', 'nouveau']
 vk_list = ['amd', 'freedreno', 'intel']
 gallium_list = ['kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',\
 'swrast', 'v3d', 'vc4', 'etnaviv', 'tegra', 'i915', 'svga', 'virgl',\
-'swr', 'panfrost', 'iris', 'lima']
+'swr', 'panfrost', 'iris', 'lima', 'zink']
 swr_list = ['avx', 'avx2', 'knl', 'skx']
 tools_list = ['drm-shim', 'etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'lima']
 
@@ -40,6 +40,7 @@ class LibnameConan(ConanFile):
         'gallium_extra_hud': [True, False],
         'gallium_omx':['disabled', 'bellagio', 'tizonia'],
         'gallium_opencl': ['icd', 'standalone', 'disabled'],
+        'opencl_spirv' : [True, False],
         'valgrind': [True, False],
         'libunwind': [True, False],
         'selinux': [True, False],
@@ -73,6 +74,7 @@ class LibnameConan(ConanFile):
         'gallium_extra_hud': False,
         'gallium_omx':'disabled',
         'gallium_opencl':'disabled',
+        'opencl_spirv' : False,
         'valgrind': False,
         'libunwind': True,
         'selinux': False,
@@ -99,7 +101,6 @@ class LibnameConan(ConanFile):
 
     requires = (
         "zlib/1.2.11",
-        "expat/2.2.9",
     )
 
     @property
@@ -159,8 +160,10 @@ class LibnameConan(ConanFile):
     def platforms(self):
         if self.system_has_kms_drm:
             return ['x11', 'drm', 'surfaceless'] #, 'wayland' TODO: Create package
-        elif (self.settings.os == 'Windows') or tools.is_apple_os(self.settings.os):
-            return ['surfaceless'] # TODO: 'x11' when conan-x11 will be available on windows and apple 
+        elif tools.is_apple_os(self.settings.os):
+            return ['surfaceless'] # TODO: 'x11' when conan-x11 will be available and apple 
+        elif self.settings.os == 'Windows':
+            return ['windows']
         else:
             raise ConanInvalidConfiguration('Unknown OS. Patches gladly accepted to fix this.')
     
@@ -168,6 +171,8 @@ class LibnameConan(ConanFile):
     def with_glx(self):
         if self.with_dri:
             return 'dri'
+        elif self.settings.os == 'Windows':
+            return 'disabled'
         elif self.with_gallium:
             # Even when building just gallium drivers the user probably wants dri
             return 'dri'
@@ -199,6 +204,8 @@ class LibnameConan(ConanFile):
             self.options.libunwind = False
 
     def requirements(self):
+        if self.settings.os != 'Windows':
+            self.requires("expat/2.2.9")
         if self.options.gallium_xvmc:
             self.requres('libxvmc/1.0.11@bincrafters/stable')
             self.requres('libxv/1.0.11@bincrafters/stable')
@@ -280,6 +287,7 @@ class LibnameConan(ConanFile):
                 'gallium-xa': 'true' if self.options.gallium_xa else 'false',
                 'gallium-nine': 'true' if self.options.gallium_nine else 'false',
                 'gallium-opencl': self.options.gallium_opencl,
+                'opencl-spirv': 'true' if self.options.opencl_spirv else 'false',
                 'gallium-extra-hud': 'true' if self.options.gallium_extra_hud else 'false',
                 "vulkan-drivers": [driver for driver in vk_list if self.options['vk_' + driver]],
                 'gles1': 'true' if self.options.gles1 else 'false',

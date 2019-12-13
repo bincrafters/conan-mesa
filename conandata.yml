@@ -2,3 +2,6 @@ sources:
   "19.2.6":
     url: "https://mesa.freedesktop.org/archive/mesa-19.2.6.tar.xz"
     sha256: "9d7b24fa60c82db34788196450042a55ce6cb2d70c7a8d5c31401619b6907797"
+  "19.3.0":
+    url: "https://mesa.freedesktop.org/archive/mesa-19.3.0.tar.xz"
+    sha256: "5fa0e4e9dca79560f6882e362f9db36d81cf96da16cf6a84e0ada7466a99a5d7"
