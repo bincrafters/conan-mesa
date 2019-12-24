@@ -78,9 +78,9 @@ class LibnameConan(ConanFile):
         'valgrind': False,
         'libunwind': True,
         'selinux': False,
-        'shader_cache': False,
+        'shader_cache': True,
         'vulkan_overlay_layer': False,
-        'gbm': False,
+        'gbm': True,
         'glvnd': False,
         'glx_read_only_text': False,
         'osmesa': 'none',
@@ -91,7 +91,7 @@ class LibnameConan(ConanFile):
         'libx11:shared': True,
     }
     default_options.update({"dri_%s" % driver: True for driver in dri_list})
-    default_options.update({"vk_%s" % driver: (driver != 'freedreno') for driver in vk_list})
+    default_options.update({"vk_%s" % driver: (driver not in ['freedreno', 'amd']) for driver in vk_list})
     default_options.update({"gallium_%s" % driver: (driver == 'swrast') for driver in gallium_list})
     default_options.update({"swr_%s" % arch: (arch in ['avx', 'avx2']) for arch in swr_list})
     default_options.update({"tool_%s" % tool: False for tool in tools_list})
@@ -110,21 +110,21 @@ class LibnameConan(ConanFile):
     @property
     def with_dri(self):
         for driver in dri_list:
-            if self.options['dri_%s' % driver]:
+            if getattr(self.options, 'dri_%s' % driver):
                 return True
         return False
     
     @property
     def with_any_vk(self):
         for driver in vk_list:
-            if self.options['vk_%s' % driver]:
+            if getattr(self.options, 'vk_%s' % driver):
                 return True
         return False
 
     @property
     def with_gallium(self):
         for driver in gallium_list:
-            if self.options['gallium_%s' % driver]:
+            if getattr(self.options, 'gallium_%s' % driver):
                 return True
         return False
 
@@ -142,7 +142,7 @@ class LibnameConan(ConanFile):
     @property
     def with_egl(self):
         return not tools.is_apple_os(self.settings.os) and not self.settings.os == 'Windows'and \
-            self.with_dri and self.options.shared
+            self.with_dri
 
     @property
     def system_has_kms_drm(self):
@@ -227,7 +227,7 @@ class LibnameConan(ConanFile):
                 self.requires("libx11/1.6.8@bincrafters/stable")
                 self.requires("libxext/1.3.4@bincrafters/stable")
                 self.requires("libxdamage/1.1.5@bincrafters/stable")
-                #self.requires("xfixes/5.0.3@bincrafters/stable")
+                self.requires("libxfixes/5.0.3@bincrafters/stable")
                 self.requires("libxcb/1.13.1@bincrafters/stable")
             if self.with_any_vk or self.with_glx == 'dri' or self.with_egl or \
                     self.options.gallium_vdpau or self.options.gallium_xvmc or self.options.gallium_va or \
@@ -238,11 +238,11 @@ class LibnameConan(ConanFile):
                 if self.with_dri3:
                     self.requires("libxshmfence/1.3@bincrafters/stable")              
             if self.with_glx == 'dri' or self.with_glx == 'gallium-xlib':
-                self.requires('glproto/1.4.17@bincrafters/stable')
+                pass#self.requires('glproto/1.4.17@bincrafters/stable') TODO: create package in conan-x11
             
             if self.with_glx == 'dri':
                 if self.with_dri_platform == 'drm':
-                    self.requires('dri2proto/2.8@bincrafters/stable')
+                    #self.requires('dri2proto/2.8@bincrafters/stable') TODO: create package in conan-x11
                     self.requires("libxxf86vm/1.1.4@bincrafters/stable")
             
             if self.with_egl or \
@@ -279,8 +279,8 @@ class LibnameConan(ConanFile):
                 'valgrind': 'true' if self.options.valgrind else 'false',
                 'libunwind': 'true' if self.options.libunwind else 'false',
                 'dri3': 'true' if self.with_dri3 else 'false',
-                'dri-drivers': [driver for driver in dri_list if self.options['dri_' + driver]],
-                'gallium-drivers': [driver for driver in gallium_list if self.options['gallium_' + driver]],
+                'dri-drivers': [driver for driver in dri_list if getattr(self.options, 'dri_' + driver)],
+                'gallium-drivers': [driver for driver in gallium_list if getattr(self.options, 'gallium_' + driver)],
                 'gallium-vdpau': 'true' if self.options.gallium_vdpau else 'false',
                 'gallium-xvmc': 'true' if self.options.gallium_xvmc else 'false',
                 'gallium-omx': self.options.gallium_omx,
@@ -290,7 +290,7 @@ class LibnameConan(ConanFile):
                 'gallium-opencl': self.options.gallium_opencl,
                 'opencl-spirv': 'true' if self.options.opencl_spirv else 'false',
                 'gallium-extra-hud': 'true' if self.options.gallium_extra_hud else 'false',
-                "vulkan-drivers": [driver for driver in vk_list if self.options['vk_' + driver]],
+                "vulkan-drivers": [driver for driver in vk_list if getattr(self.options, 'vk_' + driver)],
                 'gles1': 'true' if self.options.gles1 else 'false',
                 'gles2': 'true' if self.options.gles2 else 'false',
                 'opengl': 'true' if self.options.opengl else 'false',
@@ -304,8 +304,8 @@ class LibnameConan(ConanFile):
                 'glx-read-only-text': 'true' if self.options.glx_read_only_text else 'false',
                 'osmesa': self.options.osmesa,
                 'osmesa-bits': self.options.osmesa_bits,
-                'swr-arches': [arch for arch in swr_list if self.options['swr_' + arch]],
-                'tools': [tool for tool in tools_list if self.options['tool_' + tool]],
+                'swr-arches': [arch for arch in swr_list if getattr(self.options, 'swr_' + arch)],
+                'tools': [tool for tool in tools_list if getattr(self.options, 'tool_' + tool)],
                 'power8': 'true' if self.options.power8 else 'false',
                 'glx-direct': 'true' if self.options.glx_direct else 'false',
             },
