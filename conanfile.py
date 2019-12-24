@@ -200,7 +200,7 @@ class LibnameConan(ConanFile):
                 self.build_requires("flex_installer/2.6.4@bincrafters/stable")
 
     def configure(self):
-        if not (self.settings.os in ["Linux", "FreeBSD"]):
+        if self.settings.os not in ["Linux", "FreeBSD"]:
             self.options.libunwind = False
         tools.check_min_cppstd(self, "11")
 
@@ -238,11 +238,11 @@ class LibnameConan(ConanFile):
                 if self.with_dri3:
                     self.requires("libxshmfence/1.3@bincrafters/stable")              
             if self.with_glx == 'dri' or self.with_glx == 'gallium-xlib':
-                pass#self.requires('glproto/1.4.17@bincrafters/stable') TODO: create package in conan-x11
+                self.requires('glproto/1.4.17@bincrafters/stable')
             
             if self.with_glx == 'dri':
                 if self.with_dri_platform == 'drm':
-                    #self.requires('dri2proto/2.8@bincrafters/stable') TODO: create package in conan-x11
+                    self.requires('dri2proto/2.8@bincrafters/stable')
                     self.requires("libxxf86vm/1.1.4@bincrafters/stable")
             
             if self.with_egl or \
