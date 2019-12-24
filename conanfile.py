@@ -202,6 +202,7 @@ class LibnameConan(ConanFile):
     def configure(self):
         if not (self.settings.os in ["Linux", "FreeBSD"]):
             self.options.libunwind = False
+        tools.check_min_cppstd(self, "11")
 
     def requirements(self):
         if self.settings.os != 'Windows':
