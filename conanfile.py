@@ -209,8 +209,8 @@ class LibnameConan(ConanFile):
         if self.settings.os != 'Windows':
             self.requires("expat/2.2.9")
         if self.options.gallium_xvmc:
-            self.requres('libxvmc/1.0.11@bincrafters/stable')
-            self.requres('libxv/1.0.11@bincrafters/stable')
+            self.requires('libxvmc/1.0.11@bincrafters/stable')
+            self.requires('libxv/1.0.11@bincrafters/stable')
         if self.with_dri2 or self.with_dri3:
             self.requires("libdrm/2.4.100@bincrafters/stable")
         if self.options.vk_amd or self.options.gallium_radeonsi or self.options.gallium_opencl:
