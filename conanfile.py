@@ -202,6 +202,15 @@ class LibnameConan(ConanFile):
         tools.check_min_cppstd(self, "11")
         if not self.options.shared:
             raise ConanInvalidConfiguration('mesa can only be built as shared library')
+        if not self.system_has_kms_drm:
+            self.options.gbm = False
+            self.options.gallium_vdpau = False
+            self.options.gallium_xvmc = False
+            self.options.gallium_omx = 'disabled'
+            self.options.gallium_va = False
+            self.options.gallium_xa = False
+        if self.settings.os == 'Windows':
+            self.options.shader_cache = False
         if tools.is_apple_os(self.settings.os) or self.settings.os == 'Windows':
             self.options.egl = False
 
