@@ -289,7 +289,7 @@ class LibnameConan(ConanFile):
         meson.configure(
             defs={
                 'llvm': 'false',
-                '_platforms': self._platforms,
+                'platforms': self._platforms,
                 'valgrind': 'true' if self.options.valgrind else 'false',
                 'libunwind': 'true' if self.options.libunwind else 'false',
                 'dri3': 'true' if self._with_dri3 else 'false',
