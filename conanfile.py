@@ -61,7 +61,7 @@ class LibnameConan(ConanFile):
     options.update({"tool_%s" % tool: [True, False] for tool in tools_list})
 
     default_options = {
-        "shared": False,
+        "shared": True,
         "fPIC": True,
         "opengl": True,
         "gles1": False,
@@ -203,6 +203,8 @@ class LibnameConan(ConanFile):
         if self.settings.os not in ["Linux", "FreeBSD"]:
             self.options.libunwind = False
         tools.check_min_cppstd(self, "11")
+        if not self.options.shared:
+            raise ConanInvalidConfiguration('mesa can only be built as shared library')
 
     def requirements(self):
         if self.settings.os != 'Windows':
