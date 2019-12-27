@@ -27,6 +27,7 @@ class LibnameConan(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "opengl": [True, False],
+        "egl": [True, False],
         "gles1": [True, False],
         "gles2": [True, False],
         'vk_intel': [True, False],
@@ -64,6 +65,7 @@ class LibnameConan(ConanFile):
         "shared": True,
         "fPIC": True,
         "opengl": True,
+        "egl": True,
         "gles1": False,
         "gles2": False,
         'gallium_vdpau': False,
@@ -138,11 +140,6 @@ class LibnameConan(ConanFile):
             return 'drm'
         else:
             return 'none'
-    
-    @property
-    def with_egl(self):
-        return not tools.is_apple_os(self.settings.os) and not self.settings.os == 'Windows'and \
-            self.with_dri
 
     @property
     def system_has_kms_drm(self):
@@ -205,6 +202,8 @@ class LibnameConan(ConanFile):
         tools.check_min_cppstd(self, "11")
         if not self.options.shared:
             raise ConanInvalidConfiguration('mesa can only be built as shared library')
+        if tools.is_apple_os(self.settings.os) or self.settings.os == 'Windows':
+            self.options.egl = False
 
     def requirements(self):
         if self.settings.os != 'Windows':
@@ -231,11 +230,11 @@ class LibnameConan(ConanFile):
                 self.requires("libxdamage/1.1.5@bincrafters/stable")
                 self.requires("libxfixes/5.0.3@bincrafters/stable")
                 self.requires("libxcb/1.13.1@bincrafters/stable")
-            if self.with_any_vk or self.with_glx == 'dri' or self.with_egl or \
+            if self.with_any_vk or self.with_glx == 'dri' or self.options.egl or \
                     self.options.gallium_vdpau or self.options.gallium_xvmc or self.options.gallium_va or \
                     self.options.gallium_omx != 'disabled':
                 self.requires("libxcb/1.13.1@bincrafters/stable")
-            if self.with_any_vk or self.with_egl or (self.with_glx == 'dri' and self.with_dri_platform == 'drm'):
+            if self.with_any_vk or self.options.egl or (self.with_glx == 'dri' and self.with_dri_platform == 'drm'):
                 self.requires("libxcb/1.13.1@bincrafters/stable")
                 if self.with_dri3:
                     self.requires("libxshmfence/1.3@bincrafters/stable")              
@@ -247,7 +246,7 @@ class LibnameConan(ConanFile):
                     #self.requires('dri2proto/2.8@bincrafters/stable') TODO: create package in conan-x11
                     self.requires("libxxf86vm/1.1.4@bincrafters/stable")
             
-            if self.with_egl or \
+            if self.options.egl or \
                 self.options.gallium_vdpau or self.options.gallium_xvmc or self.options.gallium_xa or\
                 self.options.gallium_omx != 'disabled':
                 self.requires("libxcb/1.13.1@bincrafters/stable")
@@ -298,7 +297,7 @@ class LibnameConan(ConanFile):
                 'gles2': 'true' if self.options.gles2 else 'false',
                 'opengl': 'true' if self.options.opengl else 'false',
                 'glx': self.with_glx,
-                'egl': 'true' if self.with_egl else 'false',
+                'egl': 'true' if self.options.egl else 'false',
                 'xlib-lease': 'true' if self.with_xlib_lease else 'false',
                 'shader-cache': 'true' if self.options.shader_cache else 'false',
                 'vulkan-overlay-layer': 'true' if self.options.vulkan_overlay_layer else 'false',
