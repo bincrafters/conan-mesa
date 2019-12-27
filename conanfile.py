@@ -215,6 +215,11 @@ class LibnameConan(ConanFile):
             self.options.shader_cache = False
         if tools.is_apple_os(self.settings.os) or self.settings.os == 'Windows':
             self.options.egl = False
+        if 'windows' in self._platforms:
+            self.options.glvnd = False
+        if 'x11' not in self._platforms:
+            self.options.gallium_vdpau = False
+            self.options.gallium_xvmc = False
 
     def requirements(self):
         if self.settings.os != 'Windows':
