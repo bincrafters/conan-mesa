@@ -16,15 +16,15 @@ class LibnameConan(ConanFile):
     name = "mesa"
     description = "Mesa is an OpenGL compatible 3D graphics library"
     topics = ("conan", "mesa", "OpenGL")
-    url = "https://github.com/bincrafters/conan-libname"
-    homepage = "https://github.com/original_author/original_lib"
+    url = "https://github.com/bincrafters/conan-mesa"
+    author = "Bincrafters <bincrafters@gmail.com>"
+    homepage = "https://mesa.freedesktop.org"
     license = "MIT"
     generators = "pkg_config"
 
     # Options may need to change depending on the packaged library
     settings = "os", "arch", "compiler", "build_type"
     options = {
-        "shared": [True, False],
         "fPIC": [True, False],
         "opengl": [True, False],
         "egl": [True, False],
@@ -62,7 +62,6 @@ class LibnameConan(ConanFile):
     options.update({"tool_%s" % tool: [True, False] for tool in tools_list})
 
     default_options = {
-        "shared": True,
         "fPIC": True,
         "opengl": True,
         "egl": True,
@@ -105,92 +104,98 @@ class LibnameConan(ConanFile):
         "zlib/1.2.11",
     )
 
+    # TODO - Packages required but not listed in this recipe
+    # wayland-scanner (libwayland-dev on Ubuntu)
+    # wayland-protocols (wayland-protocols on Ubuntu)
+    # wayland-egl-backend (libwayland-egl-backend-dev on Ubuntu)
+    # Python module mako
+
     @property
-    def with_any_opengl(self):
+    def _with_any_opengl(self):
         return self.options.opengl or self.options.gles1 or self.options.gles2
 
     @property
-    def with_dri(self):
+    def _with_dri(self):
         for driver in dri_list:
             if getattr(self.options, 'dri_%s' % driver):
                 return True
         return False
-    
+
     @property
-    def with_any_vk(self):
+    def _with_any_vk(self):
         for driver in vk_list:
             if getattr(self.options, 'vk_%s' % driver):
                 return True
         return False
 
     @property
-    def with_gallium(self):
+    def _with_gallium(self):
         for driver in gallium_list:
             if getattr(self.options, 'gallium_%s' % driver):
                 return True
         return False
 
     @property
-    def with_dri_platform (self):
+    def _with_dri_platform (self):
         if tools.is_apple_os(self.settings.os):
             return 'apple'
         elif self.settings.os == 'Windows':
             return 'windows'
-        elif self.with_any_vk:
+        elif self._with_any_vk:
             return 'drm'
         else:
             return 'none'
 
     @property
-    def system_has_kms_drm(self):
+    def _system_has_kms_drm(self):
         return self.settings.os in ['Linux', 'FreeBSD', 'SunOS']
 
     @property
-    def with_dri2(self):
-        return (self.with_dri or self.with_any_vk) and (self.with_dri_platform == 'drm')
+    def _with_dri2(self):
+        return (self._with_dri or self._with_any_vk) and (self._with_dri_platform == 'drm')
 
     @property
-    def with_dri3(self):
-        return self.system_has_kms_drm and self.with_dri2
+    def _with_dri3(self):
+        return self._system_has_kms_drm and self._with_dri2
 
     @property
-    def platforms(self):
-        if self.system_has_kms_drm:
+    def _platforms(self):
+        if self._system_has_kms_drm:
             return ['x11', 'drm', 'surfaceless'] #, 'wayland' TODO: Create package
         elif tools.is_apple_os(self.settings.os):
-            return ['surfaceless'] # TODO: 'x11' when conan-x11 will be available and apple 
+            return ['surfaceless'] # TODO: 'x11' when conan-x11 will be available and apple
         elif self.settings.os == 'Windows':
             return ['windows']
         else:
             raise ConanInvalidConfiguration('Unknown OS. Patches gladly accepted to fix this.')
-    
+
     @property
-    def with_glx(self):
-        if self.with_dri:
+    def _with_glx(self):
+        if self._with_dri:
             return 'dri'
         elif self.settings.os == 'Windows':
             return 'disabled'
-        elif self.with_gallium:
+        elif self._with_gallium:
             # Even when building just gallium drivers the user probably wants dri
             return 'dri'
-        elif 'x11' in self.platforms and self.with_any_opengl and not self.with_any_vk:
+        elif 'x11' in self._platforms and self._with_any_opengl and not self._with_any_vk:
             # The automatic behavior should not be to turn on xlib based glx when
             # building only vulkan drivers
             return 'xlib'
         else:
             return 'disabled'
-    
+
     @property
-    def with_xlib_lease(self):
-        return 'x11' in self.platforms and 'drm' in self.platforms
-        
+    def _with_xlib_lease(self):
+        return 'x11' in self._platforms and 'drm' in self._platforms
+
 
     def build_requirements(self):
         if not tools.which("meson"):
             self.build_requires("meson/0.52.0")
         if not tools.which('pkg-config'):
             self.build_requires('pkg-config_installer/0.29.2@bincrafters/stable')
-        if self.with_any_opengl:
+        if self._with_any_opengl:
             if not tools.which("bison"):
                 self.build_requires("bison_installer/3.3.2@bincrafters/stable")
             if not tools.which("flex"):
@@ -200,9 +205,7 @@ class LibnameConan(ConanFile):
         if self.settings.os not in ["Linux", "FreeBSD"]:
             self.options.libunwind = False
         tools.check_min_cppstd(self, "11")
-        if not self.options.shared:
-            raise ConanInvalidConfiguration('mesa can only be built as shared library')
-        if not self.system_has_kms_drm:
+        if not self._system_has_kms_drm:
             self.options.gbm = False
             self.options.gallium_vdpau = False
             self.options.gallium_xvmc = False
@@ -220,7 +223,7 @@ class LibnameConan(ConanFile):
         if self.options.gallium_xvmc:
             self.requires('libxvmc/1.0.11@bincrafters/stable')
             self.requires('libxv/1.0.11@bincrafters/stable')
-        if self.with_dri2 or self.with_dri3:
+        if self._with_dri2 or self._with_dri3:
             self.requires("libdrm/2.4.100@bincrafters/stable")
         if self.options.vk_amd or self.options.gallium_radeonsi or self.options.gallium_opencl:
             self.requires("libelf/0.8.13")
@@ -228,38 +231,38 @@ class LibnameConan(ConanFile):
             self.requires('libunwind/1.3.1@bincrafters/stable')
         if self.options.selinux:
             self.requires('selinux/2.9@bincrafters/stable')
-        if 'x11' in self.platforms:
-            if self.with_glx == 'xlib' or self.with_glx == 'gallium-xlib':
+        if 'x11' in self._platforms:
+            if self._with_glx == 'xlib' or self._with_glx == 'gallium-xlib':
                 self.requires("libx11/1.6.8@bincrafters/stable")
                 self.requires("libxext/1.3.4@bincrafters/stable")
                 self.requires("libxcb/1.13.1@bincrafters/stable")
-            elif self.with_glx == 'dri':
+            elif self._with_glx == 'dri':
                 self.requires("libx11/1.6.8@bincrafters/stable")
                 self.requires("libxext/1.3.4@bincrafters/stable")
                 self.requires("libxdamage/1.1.5@bincrafters/stable")
                 self.requires("libxfixes/5.0.3@bincrafters/stable")
                 self.requires("libxcb/1.13.1@bincrafters/stable")
-            if self.with_any_vk or self.with_glx == 'dri' or self.options.egl or \
+            if self._with_any_vk or self._with_glx == 'dri' or self.options.egl or \
                     self.options.gallium_vdpau or self.options.gallium_xvmc or self.options.gallium_va or \
                     self.options.gallium_omx != 'disabled':
                 self.requires("libxcb/1.13.1@bincrafters/stable")
-            if self.with_any_vk or self.options.egl or (self.with_glx == 'dri' and self.with_dri_platform == 'drm'):
+            if self._with_any_vk or self.options.egl or (self._with_glx == 'dri' and self._with_dri_platform == 'drm'):
                 self.requires("libxcb/1.13.1@bincrafters/stable")
-                if self.with_dri3:
-                    self.requires("libxshmfence/1.3@bincrafters/stable")              
-            if self.with_glx == 'dri' or self.with_glx == 'gallium-xlib':
+                if self._with_dri3:
+                    self.requires("libxshmfence/1.3@bincrafters/stable")
+            if self._with_glx == 'dri' or self._with_glx == 'gallium-xlib':
                 pass#self.requires('glproto/1.4.17@bincrafters/stable') TODO: create package in conan-x11
-            
-            if self.with_glx == 'dri':
-                if self.with_dri_platform == 'drm':
+
+            if self._with_glx == 'dri':
+                if self._with_dri_platform == 'drm':
                     #self.requires('dri2proto/2.8@bincrafters/stable') TODO: create package in conan-x11
                     self.requires("libxxf86vm/1.1.4@bincrafters/stable")
-            
+
             if self.options.egl or \
                 self.options.gallium_vdpau or self.options.gallium_xvmc or self.options.gallium_xa or\
                 self.options.gallium_omx != 'disabled':
                 self.requires("libxcb/1.13.1@bincrafters/stable")
-            if self.with_xlib_lease:
+            if self._with_xlib_lease:
                 self.requires('libxrandr/1.5.2@bincrafters/stable')
 
     def config_options(self):
@@ -286,10 +289,10 @@ class LibnameConan(ConanFile):
         meson.configure(
             defs={
                 'llvm': 'false',
-                'platforms': self.platforms,
+                'platforms': self._platforms,
                 'valgrind': 'true' if self.options.valgrind else 'false',
                 'libunwind': 'true' if self.options.libunwind else 'false',
-                'dri3': 'true' if self.with_dri3 else 'false',
+                'dri3': 'true' if self._with_dri3 else 'false',
                 'dri-drivers': [driver for driver in dri_list if getattr(self.options, 'dri_' + driver)],
                 'gallium-drivers': [driver for driver in gallium_list if getattr(self.options, 'gallium_' + driver)],
                 'gallium-vdpau': 'true' if self.options.gallium_vdpau else 'false',
@@ -305,9 +308,9 @@ class LibnameConan(ConanFile):
                 'gles1': 'true' if self.options.gles1 else 'false',
                 'gles2': 'true' if self.options.gles2 else 'false',
                 'opengl': 'true' if self.options.opengl else 'false',
-                'glx': self.with_glx,
+                'glx': self._with_glx,
                 'egl': 'true' if self.options.egl else 'false',
-                'xlib-lease': 'true' if self.with_xlib_lease else 'false',
+                'xlib-lease': 'true' if self._with_xlib_lease else 'false',
                 'shader-cache': 'true' if self.options.shader_cache else 'false',
                 'vulkan-overlay-layer': 'true' if self.options.vulkan_overlay_layer else 'false',
                 'gbm': 'true' if self.options.gbm else 'false',
