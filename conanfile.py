@@ -17,7 +17,6 @@ class LibnameConan(ConanFile):
     description = "Mesa is an OpenGL compatible 3D graphics library"
     topics = ("conan", "mesa", "OpenGL")
     url = "https://github.com/bincrafters/conan-mesa"
-    author = "Bincrafters <bincrafters@gmail.com>"
     homepage = "https://mesa.freedesktop.org"
     license = "MIT"
     generators = "pkg_config"
