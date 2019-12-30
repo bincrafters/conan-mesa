@@ -203,7 +203,6 @@ class LibnameConan(ConanFile):
     def configure(self):
         if self.settings.os not in ["Linux", "FreeBSD"]:
             self.options.libunwind = False
-        tools.check_min_cppstd(self, "11")
         if not self._system_has_kms_drm:
             self.options.gbm = False
             self.options.gallium_vdpau = False
@@ -332,6 +331,7 @@ class LibnameConan(ConanFile):
         return meson
 
     def build(self):
+        tools.check_min_cppstd(self, "11")
         meson = self._configure_meson()
         meson.build()
 
@@ -339,6 +339,9 @@ class LibnameConan(ConanFile):
         self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
         meson = self._configure_meson()
         meson.install()
+    
+    def package_id(self):
+        del self.info.settings.compiler.cppstd
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
