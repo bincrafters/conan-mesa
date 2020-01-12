@@ -345,3 +345,4 @@ class LibnameConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+        self.env_info.LIBGL_DRIVERS_PATH = os.path.join(self.package_folder, 'lib', 'dri')
