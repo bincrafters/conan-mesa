@@ -231,7 +231,7 @@ class LibnameConan(ConanFile):
         if self.options.vk_amd or self.options.gallium_radeonsi or self.options.gallium_opencl:
             self.requires("libelf/0.8.13")
         if self.options.libunwind:
-            self.requires('libunwind/1.3.1@bincrafters/stable')
+            self.requires('libunwind/1.3.1')
         if self.options.selinux:
             self.requires('selinux/2.9@bincrafters/stable')
         if 'x11' in self._platforms:
