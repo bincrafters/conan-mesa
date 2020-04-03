@@ -2,6 +2,7 @@ from conans import ConanFile, Meson, tools
 from conans.errors import ConanInvalidConfiguration
 import os
 import shutil
+import sys
 
 
 dri_list = ['i915', 'i965', 'r100', 'r200', 'nouveau']
@@ -104,12 +105,6 @@ class LibnameConan(ConanFile):
     requires = (
         "zlib/1.2.11",
     )
-
-    # TODO - Packages required but not listed in this recipe
-    # wayland-scanner (libwayland-dev on Ubuntu)
-    # wayland-protocols (wayland-protocols on Ubuntu)
-    # wayland-egl-backend (libwayland-egl-backend-dev on Ubuntu)
-    # Python module mako
 
     @property
     def _with_any_opengl(self):
@@ -269,6 +264,29 @@ class LibnameConan(ConanFile):
                 self.requires("libxcb/1.13.1@bincrafters/stable")
             if self._with_xlib_lease:
                 self.requires('libxrandr/1.5.2@bincrafters/stable')
+
+    def system_requirements(self):
+        self.run( sys.executable + " -m pip install mako" )
+        if tools.os_info.is_linux:
+            pack_names = []
+            if tools.os_info.with_apt:
+                pack_names = [
+                    "libwayland-dev",
+                    "wayland-protocols"
+                ]
+                if ((tools.os_info.linux_distro == "Ubuntu" and tools.os_info.os_version >= "18.04") or
+                    (tools.os_info.linux_distro == "Debian" and tools.os_info.os_version >= "10")):
+                    pack_names += [
+                        "libwayland-egl-backend-dev",
+                    ]
+
+
+
+            if pack_names:
+                installer = tools.SystemPackageTool()
+                for item in pack_names:
+                    installer.install(item)
+
 
     def config_options(self):
         if self.settings.os == 'Windows':
