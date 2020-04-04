@@ -13,7 +13,7 @@ gallium_list = ['kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',\
 swr_list = ['avx', 'avx2', 'knl', 'skx']
 tools_list = ['drm-shim', 'etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'lima']
 
-class LibnameConan(ConanFile):
+class MesaConan(ConanFile):
     name = "mesa"
     description = "Mesa is an OpenGL compatible 3D graphics library"
     topics = ("conan", "mesa", "OpenGL")
