@@ -270,17 +270,13 @@ class MesaConan(ConanFile):
         if tools.os_info.is_linux:
             pack_names = []
             if tools.os_info.with_apt:
-                pack_names = [
-                    "libwayland-dev",
-                    "wayland-protocols"
-                ]
+                pack_names = ["libwayland-dev"]
                 if ((tools.os_info.linux_distro == "Ubuntu" and tools.os_info.os_version >= "18.04") or
-                    (tools.os_info.linux_distro == "Debian" and tools.os_info.os_version >= "10")):
-                    pack_names += [
-                        "libwayland-egl-backend-dev",
-                    ]
-
-
+                    (tools.os_info.linux_distro == "Debian" and tools.os_info.os_version >= "9")):
+                    pack_names += ["libwayland-egl-backend-dev"]
+                if ((tools.os_info.linux_distro == "Ubuntu" and tools.os_info.os_version >= "16.04")
+                    (tools.os_info.linux_distro == "Debian" and tools.os_info.os_version >= "9")):
+                    pack_names += ["wayland-protocols"]
 
             if pack_names:
                 installer = tools.SystemPackageTool()
