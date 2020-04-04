@@ -274,7 +274,7 @@ class MesaConan(ConanFile):
                 if ((tools.os_info.linux_distro == "Ubuntu" and tools.os_info.os_version >= "18.04") or
                     (tools.os_info.linux_distro == "Debian" and tools.os_info.os_version >= "9")):
                     pack_names += ["libwayland-egl-backend-dev"]
-                if ((tools.os_info.linux_distro == "Ubuntu" and tools.os_info.os_version >= "16.04")
+                if ((tools.os_info.linux_distro == "Ubuntu" and tools.os_info.os_version >= "16.04") or
                     (tools.os_info.linux_distro == "Debian" and tools.os_info.os_version >= "9")):
                     pack_names += ["wayland-protocols"]
 
