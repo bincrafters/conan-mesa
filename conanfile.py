@@ -157,7 +157,7 @@ class MesaConan(ConanFile):
     @property
     def _platforms(self):
         if self._system_has_kms_drm:
-            return ['x11', 'drm', 'surfaceless'] #, 'wayland' TODO: Create package
+            return ['x11', 'drm', 'surfaceless', 'wayland']
         elif tools.is_apple_os(self.settings.os):
             return ['surfaceless'] # TODO: 'x11' when conan-x11 will be available and apple
         elif self.settings.os == 'Windows':
