@@ -155,9 +155,18 @@ class MesaConan(ConanFile):
         return self._system_has_kms_drm and self._with_dri2
 
     @property
+    def _with_wayland(self):
+        return (self._system_has_kms_drm and
+                (((tools.os_info.linux_distro == "ubuntu" and tools.os_info.os_version >= "18.04") or
+                  (tools.os_info.linux_distro == "debian" and tools.os_info.os_version >= "9"))))
+
+    @property
     def _platforms(self):
         if self._system_has_kms_drm:
-            return ['x11', 'drm', 'surfaceless', 'wayland']
+            platforms = ['x11', 'drm', 'surfaceless']
+            if self._with_wayland:
+                platforms += ['wayland']
+            return platforms
         elif tools.is_apple_os(self.settings.os):
             return ['surfaceless'] # TODO: 'x11' when conan-x11 will be available and apple
         elif self.settings.os == 'Windows':
@@ -269,14 +278,8 @@ class MesaConan(ConanFile):
         self.run( sys.executable + " -m pip install mako" )
         if tools.os_info.is_linux:
             pack_names = []
-            if tools.os_info.with_apt:
-                pack_names = ["libwayland-dev"]
-                if ((tools.os_info.linux_distro == "ubuntu" and tools.os_info.os_version >= "18.04") or
-                    (tools.os_info.linux_distro == "debian" and tools.os_info.os_version >= "9")):
-                    pack_names += ["libwayland-egl-backend-dev"]
-                if ((tools.os_info.linux_distro == "ubuntu" and tools.os_info.os_version >= "16.04") or
-                    (tools.os_info.linux_distro == "debian" and tools.os_info.os_version >= "9")):
-                    pack_names += ["wayland-protocols"]
+            if tools.os_info.with_apt and self._with_wayland:
+                pack_names += ["libwayland-dev", "libwayland-egl-backend-dev", "wayland-protocols"]
 
             if pack_names:
                 installer = tools.SystemPackageTool()
