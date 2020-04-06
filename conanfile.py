@@ -54,6 +54,7 @@ class MesaConan(ConanFile):
         'osmesa_bits': [8, 16, 32],
         'power8': [True, False],
         'glx_direct': [True, False],
+        'with_wayland': [True, False, 'auto'],
         'dri_search_path': 'ANY'
     }
     options.update({"dri_%s" % driver: [True, False] for driver in dri_list})
@@ -88,7 +89,8 @@ class MesaConan(ConanFile):
         'osmesa': 'none',
         'osmesa_bits': 8,
         'power8': False,
-        'glx_direct': 'True',
+        'glx_direct': True,
+        'with_wayland': 'auto',
         'libxcb:shared': True,
         'libx11:shared': True,
         'dri_search_path': None
@@ -155,16 +157,10 @@ class MesaConan(ConanFile):
         return self._system_has_kms_drm and self._with_dri2
 
     @property
-    def _with_wayland(self):
-        return (self._system_has_kms_drm and
-                (((tools.os_info.linux_distro == "ubuntu" and tools.os_info.os_version >= "18.04") or
-                  (tools.os_info.linux_distro == "debian" and tools.os_info.os_version >= "9"))))
-
-    @property
     def _platforms(self):
         if self._system_has_kms_drm:
             platforms = ['x11', 'drm', 'surfaceless']
-            if self._with_wayland:
+            if self.options.with_wayland:
                 platforms += ['wayland']
             return platforms
         elif tools.is_apple_os(self.settings.os):
@@ -225,6 +221,10 @@ class MesaConan(ConanFile):
         if 'x11' not in self._platforms:
             self.options.gallium_vdpau = False
             self.options.gallium_xvmc = False
+        if self.options.with_wayland == 'auto':
+            self.options.with_wayland = (self._system_has_kms_drm and
+                                         (((tools.os_info.linux_distro == "ubuntu" and tools.os_info.os_version >= "18.04") or
+                                           (tools.os_info.linux_distro == "debian" and tools.os_info.os_version >= "9"))))
 
     def requirements(self):
         if self.settings.os != 'Windows':
@@ -278,7 +278,7 @@ class MesaConan(ConanFile):
         self.run( sys.executable + " -m pip install mako" )
         if tools.os_info.is_linux:
             pack_names = []
-            if tools.os_info.with_apt and self._with_wayland:
+            if tools.os_info.with_apt and self.options.with_wayland:
                 pack_names += ["libwayland-dev", "libwayland-egl-backend-dev", "wayland-protocols"]
 
             if pack_names:
