@@ -53,6 +53,7 @@ class LibnameConan(ConanFile):
         'osmesa_bits': [8, 16, 32],
         'power8': [True, False],
         'glx_direct': [True, False],
+        'dri_search_path': 'ANY'
     }
     options.update({"dri_%s" % driver: [True, False] for driver in dri_list})
     options.update({"vk_%s" % driver: [True, False] for driver in vk_list})
@@ -89,6 +90,7 @@ class LibnameConan(ConanFile):
         'glx_direct': 'True',
         'libxcb:shared': True,
         'libx11:shared': True,
+        'dri_search_path': None
     }
     default_options.update({"dri_%s" % driver: True for driver in dri_list})
     default_options.update({"vk_%s" % driver: (driver not in ['freedreno', 'amd']) for driver in vk_list})
@@ -289,43 +291,47 @@ class LibnameConan(ConanFile):
                             tools.replace_prefix_in_pc_file(filename, lib_path)
 
         meson = Meson(self)
+        defs={
+            'llvm': 'false',
+            'platforms': self._platforms,
+            'valgrind': 'true' if self.options.valgrind else 'false',
+            'libunwind': 'true' if self.options.libunwind else 'false',
+            'dri3': 'true' if self._with_dri3 else 'false',
+            'dri-drivers': [driver for driver in dri_list if getattr(self.options, 'dri_' + driver)],
+            'gallium-drivers': [driver for driver in gallium_list if getattr(self.options, 'gallium_' + driver)],
+            'gallium-vdpau': 'true' if self.options.gallium_vdpau else 'false',
+            'gallium-xvmc': 'true' if self.options.gallium_xvmc else 'false',
+            'gallium-omx': self.options.gallium_omx,
+            'gallium-va': 'true' if self.options.gallium_va else 'false',
+            'gallium-xa': 'true' if self.options.gallium_xa else 'false',
+            'gallium-nine': 'true' if self.options.gallium_nine else 'false',
+            'gallium-opencl': self.options.gallium_opencl,
+            'opencl-spirv': 'true' if self.options.opencl_spirv else 'false',
+            'gallium-extra-hud': 'true' if self.options.gallium_extra_hud else 'false',
+            "vulkan-drivers": [driver for driver in vk_list if getattr(self.options, 'vk_' + driver)],
+            'gles1': 'true' if self.options.gles1 else 'false',
+            'gles2': 'true' if self.options.gles2 else 'false',
+            'opengl': 'true' if self.options.opengl else 'false',
+            'glx': self._with_glx,
+            'egl': 'true' if self.options.egl else 'false',
+            'xlib-lease': 'true' if self._with_xlib_lease else 'false',
+            'shader-cache': 'true' if self.options.shader_cache else 'false',
+            'vulkan-overlay-layer': 'true' if self.options.vulkan_overlay_layer else 'false',
+            'gbm': 'true' if self.options.gbm else 'false',
+            'glvnd': 'true' if self.options.glvnd else 'false',
+            'glx-read-only-text': 'true' if self.options.glx_read_only_text else 'false',
+            'osmesa': self.options.osmesa,
+            'osmesa-bits': self.options.osmesa_bits,
+            'swr-arches': [arch for arch in swr_list if getattr(self.options, 'swr_' + arch)],
+            'tools': [tool for tool in tools_list if getattr(self.options, 'tool_' + tool)],
+            'power8': 'true' if self.options.power8 else 'false',
+            'glx-direct': 'true' if self.options.glx_direct else 'false',
+        }
+        if self.options.dri_search_path:
+            defs['dri-search-path']=str(self.options.dri_search_path)
+
         meson.configure(
-            defs={
-                'llvm': 'false',
-                'platforms': self._platforms,
-                'valgrind': 'true' if self.options.valgrind else 'false',
-                'libunwind': 'true' if self.options.libunwind else 'false',
-                'dri3': 'true' if self._with_dri3 else 'false',
-                'dri-drivers': [driver for driver in dri_list if getattr(self.options, 'dri_' + driver)],
-                'gallium-drivers': [driver for driver in gallium_list if getattr(self.options, 'gallium_' + driver)],
-                'gallium-vdpau': 'true' if self.options.gallium_vdpau else 'false',
-                'gallium-xvmc': 'true' if self.options.gallium_xvmc else 'false',
-                'gallium-omx': self.options.gallium_omx,
-                'gallium-va': 'true' if self.options.gallium_va else 'false',
-                'gallium-xa': 'true' if self.options.gallium_xa else 'false',
-                'gallium-nine': 'true' if self.options.gallium_nine else 'false',
-                'gallium-opencl': self.options.gallium_opencl,
-                'opencl-spirv': 'true' if self.options.opencl_spirv else 'false',
-                'gallium-extra-hud': 'true' if self.options.gallium_extra_hud else 'false',
-                "vulkan-drivers": [driver for driver in vk_list if getattr(self.options, 'vk_' + driver)],
-                'gles1': 'true' if self.options.gles1 else 'false',
-                'gles2': 'true' if self.options.gles2 else 'false',
-                'opengl': 'true' if self.options.opengl else 'false',
-                'glx': self._with_glx,
-                'egl': 'true' if self.options.egl else 'false',
-                'xlib-lease': 'true' if self._with_xlib_lease else 'false',
-                'shader-cache': 'true' if self.options.shader_cache else 'false',
-                'vulkan-overlay-layer': 'true' if self.options.vulkan_overlay_layer else 'false',
-                'gbm': 'true' if self.options.gbm else 'false',
-                'glvnd': 'true' if self.options.glvnd else 'false',
-                'glx-read-only-text': 'true' if self.options.glx_read_only_text else 'false',
-                'osmesa': self.options.osmesa,
-                'osmesa-bits': self.options.osmesa_bits,
-                'swr-arches': [arch for arch in swr_list if getattr(self.options, 'swr_' + arch)],
-                'tools': [tool for tool in tools_list if getattr(self.options, 'tool_' + tool)],
-                'power8': 'true' if self.options.power8 else 'false',
-                'glx-direct': 'true' if self.options.glx_direct else 'false',
-            },
+            defs=defs,
             source_folder=self._source_subfolder,
             build_folder=self._build_subfolder)
         return meson
