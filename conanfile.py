@@ -192,6 +192,7 @@ class MesaConan(ConanFile):
 
 
     def build_requirements(self):
+        self.run( sys.executable + " -m pip install mako" )
         if not tools.which("meson"):
             self.build_requires("meson/0.53.2")
         if not tools.which('pkg-config'):
@@ -275,7 +276,6 @@ class MesaConan(ConanFile):
                 self.requires('libxrandr/1.5.2@bincrafters/stable')
 
     def system_requirements(self):
-        self.run( sys.executable + " -m pip install mako" )
         if tools.os_info.is_linux:
             pack_names = []
             if tools.os_info.with_apt and self.options.with_wayland:
