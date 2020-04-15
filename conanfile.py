@@ -2,6 +2,7 @@ from conans import ConanFile, Meson, tools
 from conans.errors import ConanInvalidConfiguration
 import os
 import shutil
+import subprocess
 import sys
 
 
@@ -190,9 +191,27 @@ class MesaConan(ConanFile):
     def _with_xlib_lease(self):
         return 'x11' in self._platforms and 'drm' in self._platforms
 
+    def _get_python_executable(self):
+        # in case of conan is not in a virtual environment, but "python" command is in, sys.executable will not be the
+        # python path we are looking for. So we test if "python" command is executed in a virtual environment, and
+        # use it if this is true.
+        python_path = shutil.which("python")
+        if not python_path:
+            return sys.executable
+        pipResult = subprocess.run([python_path, "-c", "import pip"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if pipResult.returncode:
+            return sys.executable
+        prefixResult = subprocess.run([python_path, "-c", "import sys; print(sys.prefix)"], stdout=subprocess.PIPE)
+        basePrefixResult = subprocess.run([python_path, "-c", "import sys; print(sys.base_prefix)"], stdout=subprocess.PIPE)
+        if prefixResult.stdout != basePrefixResult.stdout:
+            return "python"
+        return sys.executable
+
+    def _pip_install(self, package):
+        self.run( "{} -m pip install {}".format( self._get_python_executable(), package ), output=True )
 
     def build_requirements(self):
-        self.run( sys.executable + " -m pip install mako" )
+        self._pip_install("mako")
         if not tools.which("meson"):
             self.build_requires("meson/0.53.2")
         if not tools.which('pkg-config'):
