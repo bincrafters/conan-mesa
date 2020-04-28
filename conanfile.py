@@ -198,7 +198,7 @@ class LibnameConan(ConanFile):
             self.build_requires('pkg-config_installer/0.29.2@bincrafters/stable')
         if self._with_any_opengl:
             if not tools.which("bison"):
-                self.build_requires("bison_installer/3.3.2@bincrafters/stable")
+                self.build_requires("bison/3.5.3")
             if not tools.which("flex"):
                 self.build_requires("flex_installer/2.6.4@bincrafters/stable")
 
