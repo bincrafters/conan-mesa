@@ -200,7 +200,7 @@ class LibnameConan(ConanFile):
             if not tools.which("bison"):
                 self.build_requires("bison/3.5.3")
             if not tools.which("flex"):
-                self.build_requires("flex_installer/2.6.4@bincrafters/stable")
+                self.build_requires("flex/2.6.4")
 
     def configure(self):
         if self.settings.os not in ["Linux", "FreeBSD"]:
