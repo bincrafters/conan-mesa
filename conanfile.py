@@ -284,6 +284,8 @@ class MesaConan(ConanFile):
             if tools.os_info.with_apt :
                 if self.options.with_wayland:
                     required_packages += ["libwayland-dev", "libwayland-egl-backend-dev", "wayland-protocols"]
+                if self.options.glvnd:
+                    required_packages += ["libglvnd-dev"]
 
             if required_packages:
                 installer = tools.SystemPackageTool()
