@@ -280,14 +280,20 @@ class MesaConan(ConanFile):
 
     def system_requirements(self):
         if tools.os_info.is_linux:
-            pack_names = []
-            if tools.os_info.with_apt and self.options.with_wayland:
-                pack_names += ["libwayland-dev", "libwayland-egl-backend-dev", "wayland-protocols"]
+            required_packages = []
+            if tools.os_info.with_apt :
+                if self.options.with_wayland:
+                    required_packages += ["libwayland-dev", "libwayland-egl-backend-dev", "wayland-protocols"]
 
-            if pack_names:
+            if required_packages:
                 installer = tools.SystemPackageTool()
-                for item in pack_names:
-                    installer.install(item)
+
+                missing_packages = []
+                for package in required_packages:
+                    if not installer.installed(package):
+                        missing_packages.append(package)
+                if missing_packages:
+                    raise ConanInvalidConfiguration("mesa requires {}.".format(",".join(missing_packages)))
 
 
     def config_options(self):
@@ -365,7 +371,7 @@ class MesaConan(ConanFile):
         self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
         meson = self._configure_meson()
         meson.install()
-    
+
     def package_id(self):
         del self.info.settings.compiler.cppstd
 
