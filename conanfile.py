@@ -224,7 +224,7 @@ class LibnameConan(ConanFile):
 
     def requirements(self):
         if self.settings.os != 'Windows':
-            self.requires("expat/2.2.9")
+            self.requires("expat/2.2.10")
         if self.options.gallium_xvmc:
             self.requires('libxvmc/1.0.11@bincrafters/stable')
             self.requires('libxv/1.0.11@bincrafters/stable')
