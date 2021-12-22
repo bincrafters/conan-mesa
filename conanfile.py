@@ -1,7 +1,9 @@
 from conans import ConanFile, Meson, tools
-from conans.errors import ConanInvalidConfiguration
+from conans.errors import ConanInvalidConfiguration, ConanException
 import os
 import shutil
+import subprocess
+import sys
 
 
 dri_list = ['i915', 'i965', 'r100', 'r200', 'nouveau']
@@ -12,7 +14,7 @@ gallium_list = ['kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',\
 swr_list = ['avx', 'avx2', 'knl', 'skx']
 tools_list = ['drm-shim', 'etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'lima']
 
-class LibnameConan(ConanFile):
+class MesaConan(ConanFile):
     name = "mesa"
     description = "Mesa is an OpenGL compatible 3D graphics library"
     topics = ("conan", "mesa", "OpenGL")
@@ -53,6 +55,7 @@ class LibnameConan(ConanFile):
         'osmesa_bits': [8, 16, 32],
         'power8': [True, False],
         'glx_direct': [True, False],
+        'with_wayland': [True, False, 'auto'],
         'dri_search_path': 'ANY'
     }
     options.update({"dri_%s" % driver: [True, False] for driver in dri_list})
@@ -87,7 +90,8 @@ class LibnameConan(ConanFile):
         'osmesa': 'none',
         'osmesa_bits': 8,
         'power8': False,
-        'glx_direct': 'True',
+        'glx_direct': True,
+        'with_wayland': 'auto',
         'libxcb:shared': True,
         'libx11:shared': True,
         'dri_search_path': None
@@ -104,12 +108,6 @@ class LibnameConan(ConanFile):
     requires = (
         "zlib/1.2.11",
     )
-
-    # TODO - Packages required but not listed in this recipe
-    # wayland-scanner (libwayland-dev on Ubuntu)
-    # wayland-protocols (wayland-protocols on Ubuntu)
-    # wayland-egl-backend (libwayland-egl-backend-dev on Ubuntu)
-    # Python module mako
 
     @property
     def _with_any_opengl(self):
@@ -162,7 +160,10 @@ class LibnameConan(ConanFile):
     @property
     def _platforms(self):
         if self._system_has_kms_drm:
-            return ['x11', 'drm', 'surfaceless'] #, 'wayland' TODO: Create package
+            platforms = ['x11', 'drm', 'surfaceless']
+            if self.options.with_wayland:
+                platforms += ['wayland']
+            return platforms
         elif tools.is_apple_os(self.settings.os):
             return ['surfaceless'] # TODO: 'x11' when conan-x11 will be available and apple
         elif self.settings.os == 'Windows':
@@ -190,8 +191,11 @@ class LibnameConan(ConanFile):
     def _with_xlib_lease(self):
         return 'x11' in self._platforms and 'drm' in self._platforms
 
-
     def build_requirements(self):
+        importMakoResult = subprocess.run(["python3", "-c", "import mako"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if importMakoResult.returncode:
+            raise ConanException("mako package not found in python3 environment. install it with \"pip3 install mako\"")
+        self.output.info("mako package installed in python3 environment.")
         if not tools.which("meson"):
             self.build_requires("meson/0.59.3")
         if not tools.which('pkg-config'):
@@ -221,6 +225,10 @@ class LibnameConan(ConanFile):
         if 'x11' not in self._platforms:
             self.options.gallium_vdpau = False
             self.options.gallium_xvmc = False
+        if self.options.with_wayland == 'auto':
+            self.options.with_wayland = (self._system_has_kms_drm and
+                                         (((tools.os_info.linux_distro == "ubuntu" and tools.os_info.os_version >= "18.04") or
+                                           (tools.os_info.linux_distro == "debian" and tools.os_info.os_version >= "9"))))
 
     def requirements(self):
         if self.settings.os != 'Windows':
@@ -269,6 +277,26 @@ class LibnameConan(ConanFile):
                 self.requires("libxcb/1.13.1@bincrafters/stable")
             if self._with_xlib_lease:
                 self.requires('libxrandr/1.5.2@bincrafters/stable')
+
+    def system_requirements(self):
+        if tools.os_info.is_linux:
+            required_packages = []
+            if tools.os_info.with_apt :
+                if self.options.with_wayland:
+                    required_packages += ["libwayland-dev", "libwayland-egl-backend-dev", "wayland-protocols"]
+                if self.options.glvnd:
+                    required_packages += ["libglvnd-dev"]
+
+            if required_packages:
+                installer = tools.SystemPackageTool()
+
+                missing_packages = []
+                for package in required_packages:
+                    if not installer.installed(package):
+                        missing_packages.append(package)
+                if missing_packages:
+                    raise ConanInvalidConfiguration("mesa requires {}.".format(",".join(missing_packages)))
+
 
     def config_options(self):
         if self.settings.os == 'Windows':
@@ -345,7 +373,7 @@ class LibnameConan(ConanFile):
         self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
         meson = self._configure_meson()
         meson.install()
-    
+
     def package_id(self):
         del self.info.settings.compiler.cppstd
 
